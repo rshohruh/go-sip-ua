@@ -2,10 +2,10 @@ package utils
 
 import (
 	"fmt"
-
 	"github.com/ghettovoice/gosip/log"
 	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	"os"
 )
 
 type MyLogger struct {
@@ -47,6 +47,12 @@ func NewLogrusLogger(level log.Level, prefix string, fields log.Fields) log.Logg
 	}
 	l := logrus.New()
 	l.Level = logrus.ErrorLevel
+
+	logFile, err := os.OpenFile(fmt.Sprintf("agent-%s.log", prefix), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		l.Fatalf("Failed to open log file: %s", err)
+	}
+	l.SetOutput(logFile)
 	l.Formatter = &prefixed.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05.000",
@@ -59,14 +65,14 @@ func NewLogrusLogger(level log.Level, prefix string, fields log.Fields) log.Logg
 		Logger: logger,
 		level:  level,
 	}
-	logger.SetLevel(level)
+	logger.SetLevel(uint32(level))
 	return logger.WithPrefix(prefix)
 }
 
 func SetLogLevel(prefix string, level log.Level) error {
 	if logger, found := loggers[prefix]; found {
 		logger.level = level
-		logger.Logger.SetLevel(level)
+		logger.Logger.SetLevel(uint32(level))
 		return nil
 	}
 	return fmt.Errorf("logger [%v] not found", prefix)
